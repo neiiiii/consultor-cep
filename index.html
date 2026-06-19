@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consultor de CEP - Busca de Endereços</title>
+    <title>Consultor de CEP Premium - Busca de Endereços Avançada</title>
     <style>
         * {
             margin: 0;
@@ -17,6 +17,7 @@
             --success-color: #10b981;
             --error-color: #ef4444;
             --warning-color: #f59e0b;
+            --info-color: #3b82f6;
             --background: #f9fafb;
             --surface: #ffffff;
             --text-primary: #1f2937;
@@ -26,16 +27,29 @@
             --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
+        body.dark-mode {
+            --background: #1f2937;
+            --surface: #111827;
+            --text-primary: #f3f4f6;
+            --text-secondary: #d1d5db;
+            --border-color: #374151;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, var(--primary-color) 0%, #7c3aed 100%);
             color: var(--text-primary);
             min-height: 100vh;
             padding: 20px;
+            transition: background 0.3s ease;
+        }
+
+        body.dark-mode {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         }
 
         .container {
-            max-width: 600px;
+            max-width: 700px;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
@@ -45,8 +59,28 @@
         header {
             text-align: center;
             color: white;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             margin-top: 20px;
+            position: relative;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
         }
 
         header h1 {
@@ -56,12 +90,54 @@
         }
 
         .subtitle {
-            font-size: 1.1rem;
+            font-size: 1rem;
             opacity: 0.95;
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: transparent;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: var(--primary-color);
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         main {
             flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -80,7 +156,7 @@
             margin-bottom: 15px;
         }
 
-        .cep-input {
+        .cep-input, .address-input {
             flex: 1;
             padding: 14px 18px;
             border: 2px solid var(--border-color);
@@ -88,19 +164,21 @@
             font-size: 1rem;
             transition: all 0.3s ease;
             font-family: inherit;
+            background: var(--background);
+            color: var(--text-primary);
         }
 
-        .cep-input:focus {
+        .cep-input:focus, .address-input:focus {
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
 
-        .cep-input::placeholder {
+        .cep-input::placeholder, .address-input::placeholder {
             color: var(--text-secondary);
         }
 
-        .search-btn {
+        .search-btn, .clear-btn {
             padding: 14px 28px;
             background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
             color: white;
@@ -113,7 +191,7 @@
             min-width: 120px;
         }
 
-        .search-btn:hover:not(:disabled) {
+        .search-btn:hover:not(:disabled), .clear-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 12px rgba(79, 70, 229, 0.4);
         }
@@ -127,6 +205,33 @@
             cursor: not-allowed;
         }
 
+        .filter-section {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            background: var(--background);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .filter-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+        }
+
         .error-message {
             color: var(--error-color);
             font-size: 0.95rem;
@@ -135,6 +240,17 @@
         }
 
         .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            color: var(--success-color);
+            font-size: 0.95rem;
+            padding: 10px 0;
+            display: none;
+        }
+
+        .success-message.show {
             display: block;
         }
 
@@ -217,6 +333,7 @@
             background: var(--background);
             border-radius: 6px;
             border-left: 4px solid var(--primary-color);
+            word-break: break-word;
         }
 
         .result-actions {
@@ -249,12 +366,22 @@
             box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
         }
 
-        .clear-btn {
+        .share-btn {
+            background: var(--info-color);
+            color: white;
+        }
+
+        .share-btn:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .clear-result-btn {
             background: var(--border-color);
             color: var(--text-primary);
         }
 
-        .clear-btn:hover {
+        .clear-result-btn:hover {
             background: #d1d5db;
             transform: translateY(-2px);
         }
@@ -262,6 +389,7 @@
         .empty-state {
             flex: 1;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             background: rgba(255, 255, 255, 0.1);
@@ -269,6 +397,80 @@
             color: white;
             font-size: 1.1rem;
             min-height: 200px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .history-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .history-item {
+            background: var(--background);
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--primary-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:hover {
+            transform: translateX(5px);
+            box-shadow: var(--shadow);
+        }
+
+        .history-item-content {
+            flex: 1;
+        }
+
+        .history-item-cep {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .history-item-address {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .delete-history-btn {
+            background: var(--error-color);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .delete-history-btn:hover {
+            background: #dc2626;
+        }
+
+        .api-info {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 15px;
+            background: var(--background);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .api-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
         }
 
         footer {
@@ -279,9 +481,18 @@
             font-size: 0.9rem;
         }
 
-        #apiSource {
-            font-weight: 600;
+        .badge {
+            display: inline-block;
+            background: var(--success-color);
             color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge.warning {
+            background: var(--warning-color);
         }
 
         @media (max-width: 480px) {
@@ -293,7 +504,7 @@
                 flex-direction: column;
             }
 
-            .search-btn {
+            .search-btn, .clear-btn {
                 min-width: 100%;
             }
 
@@ -304,90 +515,246 @@
             .action-btn {
                 flex: 1;
             }
+
+            .tabs {
+                flex-direction: column;
+            }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: var(--background);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🔍 Consultor de CEP</h1>
-            <p class="subtitle">Busque endereços brasileiros de forma rápida e fácil</p>
+            <button class="theme-toggle" id="themeToggle" title="Alternar tema">🌙</button>
+            <h1>🔍 Consultor de CEP Pro</h1>
+            <p class="subtitle">Sistema avançado de consulta de endereços brasileiros</p>
         </header>
 
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="cep">📍 Por CEP</button>
+            <button class="tab-btn" data-tab="address">🏘️ Por Endereço</button>
+            <button class="tab-btn" data-tab="history">📜 Histórico</button>
+            <button class="tab-btn" data-tab="info">ℹ️ Informações</button>
+        </div>
+
         <main>
-            <div class="search-section">
-                <div class="input-group">
-                    <input 
-                        type="text" 
-                        id="cepInput" 
-                        class="cep-input" 
-                        placeholder="Digite o CEP (ex: 01001-000 ou 01001000)"
-                        maxlength="9"
-                    >
-                    <button id="searchBtn" class="search-btn">Buscar</button>
+            <!-- TAB 1: CEP -->
+            <div id="cep-tab" class="tab-content active">
+                <div class="search-section">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="cepInput" 
+                            class="cep-input" 
+                            placeholder="Digite o CEP (ex: 01001-000 ou 01001000)"
+                            maxlength="9"
+                        >
+                        <button id="searchBtn" class="search-btn">Buscar</button>
+                    </div>
+                    <div id="errorMessage" class="error-message"></div>
+                    <div id="successMessage" class="success-message"></div>
                 </div>
-                <div id="errorMessage" class="error-message"></div>
+
+                <div id="loadingSpinner" class="loading-spinner hidden">
+                    <div class="spinner"></div>
+                    <p>Consultando endereço...</p>
+                </div>
+
+                <div id="resultSection" class="result-section hidden">
+                    <div class="result-card">
+                        <h2>📍 Endereço Encontrado</h2>
+                        
+                        <div class="address-grid">
+                            <div class="address-item">
+                                <label>CEP</label>
+                                <p id="resultCep" class="address-value">-</p>
+                            </div>
+                            <div class="address-item">
+                                <label>Logradouro</label>
+                                <p id="resultRua" class="address-value">-</p>
+                            </div>
+                            <div class="address-item">
+                                <label>Número/Complemento</label>
+                                <p id="resultComplemento" class="address-value">-</p>
+                            </div>
+                            <div class="address-item">
+                                <label>Bairro</label>
+                                <p id="resultBairro" class="address-value">-</p>
+                            </div>
+                            <div class="address-item">
+                                <label>Cidade</label>
+                                <p id="resultCidade" class="address-value">-</p>
+                            </div>
+                            <div class="address-item">
+                                <label>Estado (UF)</label>
+                                <p id="resultEstado" class="address-value">-</p>
+                            </div>
+                        </div>
+
+                        <div class="api-info">
+                            <span>Fornecedor:</span>
+                            <span id="apiSource" class="api-badge">-</span>
+                        </div>
+
+                        <div class="result-actions">
+                            <button id="copyBtn" class="action-btn copy-btn">📋 Copiar</button>
+                            <button id="shareBtn" class="action-btn share-btn">📤 Compartilhar</button>
+                            <button id="clearBtn" class="action-btn clear-result-btn">🔄 Nova Busca</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="emptyState" class="empty-state">
+                    <p>👆 Digite um CEP acima para começar</p>
+                </div>
             </div>
 
-            <div id="loadingSpinner" class="loading-spinner hidden">
-                <div class="spinner"></div>
-                <p>Consultando endereço...</p>
-            </div>
-
-            <div id="resultSection" class="result-section hidden">
-                <div class="result-card">
-                    <h2>📍 Endereço Encontrado</h2>
+            <!-- TAB 2: BUSCA REVERSA -->
+            <div id="address-tab" class="tab-content">
+                <div class="search-section">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);">🏘️ Busca por Endereço</h3>
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="addressInput" 
+                            class="address-input" 
+                            placeholder="Digite a rua, cidade ou bairro..."
+                        >
+                        <button id="searchAddressBtn" class="search-btn">Buscar</button>
+                    </div>
+                    <div id="addressErrorMessage" class="error-message"></div>
                     
-                    <div class="address-grid">
-                        <div class="address-item">
-                            <label>CEP</label>
-                            <p id="resultCep" class="address-value">-</p>
+                    <div class="filter-section" style="margin-top: 15px;">
+                        <label style="width: 100%; color: var(--text-secondary); font-weight: 600;">Filtros:</label>
+                        <button class="filter-btn active" data-filter="all">Todos</button>
+                        <button class="filter-btn" data-filter="rua">Rua</button>
+                        <button class="filter-btn" data-filter="bairro">Bairro</button>
+                        <button class="filter-btn" data-filter="cidade">Cidade</button>
+                    </div>
+                </div>
+
+                <div id="addressLoadingSpinner" class="loading-spinner hidden">
+                    <div class="spinner"></div>
+                    <p>Buscando endereços...</p>
+                </div>
+
+                <div id="addressResultsSection" class="result-section hidden">
+                    <h2>📌 Resultados Encontrados</h2>
+                    <div id="addressResultsList" class="history-list"></div>
+                </div>
+
+                <div id="addressEmptyState" class="empty-state">
+                    <p>🏘️ Digite um endereço para buscar</p>
+                </div>
+            </div>
+
+            <!-- TAB 3: HISTÓRICO -->
+            <div id="history-tab" class="tab-content">
+                <div class="search-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="color: var(--primary-color);">📜 Histórico de Buscas</h2>
+                        <button id="clearHistoryBtn" class="clear-btn" style="min-width: auto; padding: 8px 16px; font-size: 0.9rem;">Limpar Tudo</button>
+                    </div>
+                    
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalSearches">0</div>
+                            <div class="stat-label">Total de Buscas</div>
                         </div>
-                        <div class="address-item">
-                            <label>Logradouro</label>
-                            <p id="resultRua" class="address-value">-</p>
-                        </div>
-                        <div class="address-item">
-                            <label>Número/Complemento</label>
-                            <p id="resultComplemento" class="address-value">-</p>
-                        </div>
-                        <div class="address-item">
-                            <label>Bairro</label>
-                            <p id="resultBairro" class="address-value">-</p>
-                        </div>
-                        <div class="address-item">
-                            <label>Cidade</label>
-                            <p id="resultCidade" class="address-value">-</p>
-                        </div>
-                        <div class="address-item">
-                            <label>Estado (UF)</label>
-                            <p id="resultEstado" class="address-value">-</p>
+                        <div class="stat-card">
+                            <div class="stat-number" id="favoritesCount">0</div>
+                            <div class="stat-label">Favoritos</div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="result-actions">
-                        <button id="copyBtn" class="action-btn copy-btn">
-                            📋 Copiar Endereço
-                        </button>
-                        <button id="clearBtn" class="action-btn clear-btn">
-                            🔄 Nova Busca
-                        </button>
+                <div class="result-section">
+                    <div id="historyList" class="history-list"></div>
+                    <div id="historyEmpty" class="empty-state" style="min-height: 150px;">
+                        <p>📭 Nenhuma busca realizada ainda</p>
                     </div>
                 </div>
             </div>
 
-            <div id="emptyState" class="empty-state">
-                <p>👆 Digite um CEP acima para começar</p>
+            <!-- TAB 4: INFORMAÇÕES -->
+            <div id="info-tab" class="tab-content">
+                <div class="search-section">
+                    <h2 style="color: var(--primary-color); margin-bottom: 20px;">ℹ️ Sobre o Sistema</h2>
+                    
+                    <div style="display: grid; gap: 20px;">
+                        <div>
+                            <h3 style="color: var(--text-primary); margin-bottom: 10px;">✨ Funcionalidades</h3>
+                            <ul style="list-style: none; gap: 8px; display: flex; flex-direction: column;">
+                                <li>✅ Busca por CEP com 3 APIs confiáveis</li>
+                                <li>✅ Busca reversa por endereço</li>
+                                <li>✅ Histórico completo de buscas</li>
+                                <li>✅ Modo escuro/claro</li>
+                                <li>✅ Copiar e compartilhar endereços</li>
+                                <li>✅ Validação em tempo real</li>
+                                <li>✅ Interface 100% responsiva</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 style="color: var(--text-primary); margin-bottom: 10px;">🔌 APIs Utilizadas</h3>
+                            <ul style="list-style: none; gap: 8px; display: flex; flex-direction: column;">
+                                <li>🟢 <strong>ViaCEP</strong> - Principal</li>
+                                <li>🟡 <strong>BrasilAPI v2</strong> - Fallback</li>
+                                <li>🔵 <strong>AwesomeAPI</strong> - Terceira opção</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 style="color: var(--text-primary); margin-bottom: 10px;">💾 Dados Locais</h3>
+                            <p style="color: var(--text-secondary); margin-bottom: 10px;">O sistema armazena seus dados localmente no navegador (localStorage). Nenhuma informação é enviada para servidores.</p>
+                            <button id="exportDataBtn" class="search-btn" style="width: 100%; margin-top: 10px; min-width: 100%;">📥 Exportar Dados</button>
+                        </div>
+
+                        <div>
+                            <h3 style="color: var(--text-primary); margin-bottom: 10px;">📱 Compatibilidade</h3>
+                            <p style="color: var(--text-secondary);">Chrome, Firefox, Safari, Edge, Opera e todos os navegadores modernos</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
 
         <footer>
-            <p>Utilizando múltiplas APIs confiáveis • <span id="apiSource">-</span></p>
+            <p>Desenvolvido com ❤️ usando HTML, CSS e JavaScript puro • v2.0 Premium</p>
         </footer>
     </div>
 
     <script>
-        // APIs de CEP com fallback
+        // ============================================
+        // CONFIGURAÇÃO GERAL
+        // ============================================
         const APIs = [
             {
                 name: 'ViaCEP',
@@ -430,18 +797,81 @@
             }
         ];
 
-        // Elementos do DOM
+        // ============================================
+        // ELEMENTOS DO DOM
+        // ============================================
         const cepInput = document.getElementById('cepInput');
         const searchBtn = document.getElementById('searchBtn');
         const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
         const loadingSpinner = document.getElementById('loadingSpinner');
         const resultSection = document.getElementById('resultSection');
         const emptyState = document.getElementById('emptyState');
         const copyBtn = document.getElementById('copyBtn');
+        const shareBtn = document.getElementById('shareBtn');
         const clearBtn = document.getElementById('clearBtn');
         const apiSource = document.getElementById('apiSource');
+        const themeToggle = document.getElementById('themeToggle');
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
 
-        // Mascara o CEP enquanto digita
+        // Busca por endereço
+        const addressInput = document.getElementById('addressInput');
+        const searchAddressBtn = document.getElementById('searchAddressBtn');
+        const addressErrorMessage = document.getElementById('addressErrorMessage');
+        const addressLoadingSpinner = document.getElementById('addressLoadingSpinner');
+        const addressResultsSection = document.getElementById('addressResultsSection');
+        const addressResultsList = document.getElementById('addressResultsList');
+        const addressEmptyState = document.getElementById('addressEmptyState');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        let activeFilter = 'all';
+
+        // Histórico
+        const historyList = document.getElementById('historyList');
+        const historyEmpty = document.getElementById('historyEmpty');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        const totalSearches = document.getElementById('totalSearches');
+        const favoritesCount = document.getElementById('favoritesCount');
+        const exportDataBtn = document.getElementById('exportDataBtn');
+
+        // ============================================
+        // GERENCIAMENTO DE TEMA
+        // ============================================
+        const isDarkMode = localStorage.getItem('darkMode') === 'true';
+        if (isDarkMode) {
+            document.body.classList.add('dark-mode');
+            themeToggle.textContent = '☀️';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+            themeToggle.textContent = isDark ? '☀️' : '🌙';
+        });
+
+        // ============================================
+        // GERENCIAMENTO DE ABAS
+        // ============================================
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabName = btn.dataset.tab;
+                
+                tabButtons.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                
+                btn.classList.add('active');
+                document.getElementById(`${tabName}-tab`).classList.add('active');
+                
+                if (tabName === 'history') {
+                    renderHistory();
+                }
+            });
+        });
+
+        // ============================================
+        // MÁSCARA E VALIDAÇÃO DE CEP
+        // ============================================
         cepInput.addEventListener('input', (e) => {
             let value = e.target.value.replace(/\D/g, '');
             if (value.length > 5) {
@@ -451,13 +881,33 @@
             clearError();
         });
 
-        // Busca ao clicar ou pressionar Enter
+        // ============================================
+        // EVENTOS DE BUSCA
+        // ============================================
         searchBtn.addEventListener('click', buscarCEP);
         cepInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') buscarCEP();
         });
 
-        // Copia o endereço para clipboard
+        searchAddressBtn.addEventListener('click', buscarPorEndereco);
+        addressInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') buscarPorEndereco();
+        });
+
+        // ============================================
+        // FILTROS
+        // ============================================
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeFilter = btn.dataset.filter;
+            });
+        });
+
+        // ============================================
+        // AÇÕES DOS BOTÕES
+        // ============================================
         copyBtn.addEventListener('click', () => {
             const endereco = [
                 document.getElementById('resultRua').textContent,
@@ -477,7 +927,28 @@
             });
         });
 
-        // Limpa a busca
+        shareBtn.addEventListener('click', () => {
+            const endereco = [
+                document.getElementById('resultRua').textContent,
+                document.getElementById('resultBairro').textContent,
+                document.getElementById('resultCidade').textContent,
+                document.getElementById('resultEstado').textContent
+            ].filter(item => item !== '-').join(', ');
+
+            const cep = document.getElementById('resultCep').textContent;
+            const text = `CEP ${cep}: ${endereco}`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Consultor de CEP',
+                    text: text
+                });
+            } else {
+                navigator.clipboard.writeText(text);
+                showSuccess('Endereço copiado para compartilhar!');
+            }
+        });
+
         clearBtn.addEventListener('click', () => {
             cepInput.value = '';
             resultSection.classList.add('hidden');
@@ -486,28 +957,47 @@
             clearError();
         });
 
-        // Valida e normaliza CEP
-        function normalizarCEP(cep) {
-            const apenasNumeros = cep.replace(/\D/g, '');
-            if (apenasNumeros.length !== 8) {
-                throw new Error('CEP deve conter exatamente 8 dígitos');
+        clearHistoryBtn.addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja limpar todo o histórico?')) {
+                localStorage.removeItem('searchHistory');
+                localStorage.removeItem('favorites');
+                renderHistory();
             }
-            return apenasNumeros;
-        }
+        });
 
-        // Exibe erro
+        exportDataBtn.addEventListener('click', () => {
+            const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            const data = JSON.stringify(history, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `historico_cep_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        });
+
+        // ============================================
+        // FUNÇÕES DE MENSAGENS
+        // ============================================
         function mostrarErro(mensagem) {
             errorMessage.textContent = mensagem;
             errorMessage.classList.add('show');
+            successMessage.classList.remove('show');
         }
 
-        // Limpa erro
         function clearError() {
             errorMessage.textContent = '';
             errorMessage.classList.remove('show');
         }
 
-        // Exibe loading
+        function showSuccess(mensagem) {
+            successMessage.textContent = mensagem;
+            successMessage.classList.add('show');
+            setTimeout(() => {
+                successMessage.classList.remove('show');
+            }, 3000);
+        }
+
         function mostrarLoading(show = true) {
             if (show) {
                 loadingSpinner.classList.remove('hidden');
@@ -518,7 +1008,6 @@
             }
         }
 
-        // Exibe resultado
         function exibirResultado(dados, nomeAPI) {
             document.getElementById('resultCep').textContent = formatarCEP(dados.cep);
             document.getElementById('resultRua').textContent = dados.rua || '-';
@@ -533,13 +1022,14 @@
             mostrarLoading(false);
         }
 
-        // Formata CEP para exibição
         function formatarCEP(cep) {
             cep = cep.replace(/\D/g, '');
             return cep.slice(0, 5) + '-' + cep.slice(5, 8);
         }
 
-        // Busca CEP com fallback entre APIs
+        // ============================================
+        // BUSCA POR CEP
+        // ============================================
         async function buscarCEP() {
             clearError();
 
@@ -548,31 +1038,28 @@
                 mostrarLoading(true);
                 searchBtn.disabled = true;
 
-                // Tenta cada API em ordem
                 for (const api of APIs) {
                     try {
-                        const response = await fetch(api.url(cep), {
-                            timeout: 5000
-                        });
-
+                        const response = await fetch(api.url(cep), { timeout: 5000 });
                         if (!response.ok) continue;
 
                         const data = await response.json();
-
                         if (api.isError(data)) continue;
 
                         const endereco = api.parser(data);
                         exibirResultado(endereco, api.name);
+                        
+                        // Salva no histórico
+                        adicionarAoHistorico(cep, endereco);
+                        
                         searchBtn.disabled = false;
                         return;
-
                     } catch (erro) {
                         console.warn(`${api.name} falhou:`, erro);
                         continue;
                     }
                 }
 
-                // Se nenhuma API funcionou
                 mostrarErro('❌ CEP não encontrado. Tente verificar o número digitado.');
                 mostrarLoading(false);
                 resultSection.classList.add('hidden');
@@ -586,7 +1073,144 @@
             }
         }
 
-        // Focus no input ao carregar
+        // ============================================
+        // BUSCA POR ENDEREÇO
+        // ============================================
+        async function buscarPorEndereco() {
+            const endereco = addressInput.value.trim();
+            if (!endereco || endereco.length < 3) {
+                mostrarErroAddress('⚠️ Digite pelo menos 3 caracteres');
+                return;
+            }
+
+            addressLoadingSpinner.classList.remove('hidden');
+            addressResultsSection.classList.add('hidden');
+            addressEmptyState.classList.add('hidden');
+
+            try {
+                const response = await fetch(
+                    `https://brasilapi.com.br/api/cep/v2/search?q=${encodeURIComponent(endereco)}`
+                );
+                const data = await response.json();
+
+                if (data.cidades && Array.isArray(data.cidades) && data.cidades.length > 0) {
+                    renderizarResultadosEndereco(data.cidades);
+                    addressResultsSection.classList.remove('hidden');
+                } else if (data.message === 'Not found') {
+                    mostrarErroAddress('❌ Nenhum endereço encontrado');
+                } else {
+                    mostrarErroAddress('⚠️ Erro ao buscar endereço');
+                }
+            } catch (erro) {
+                mostrarErroAddress('⚠️ Erro de conexão');
+            } finally {
+                addressLoadingSpinner.classList.add('hidden');
+            }
+        }
+
+        function renderizarResultadosEndereco(cidades) {
+            addressResultsList.innerHTML = '';
+            cidades.forEach(cidade => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-item-content">
+                        <div class="history-item-cep">${cidade.name}</div>
+                        <div class="history-item-address">${cidade.state}</div>
+                    </div>
+                `;
+                item.style.cursor = 'pointer';
+                item.addEventListener('click', () => {
+                    addressInput.value = cidade.name;
+                });
+                addressResultsList.appendChild(item);
+            });
+        }
+
+        function mostrarErroAddress(msg) {
+            addressErrorMessage.textContent = msg;
+            addressErrorMessage.classList.add('show');
+        }
+
+        addressInput.addEventListener('input', () => {
+            addressErrorMessage.classList.remove('show');
+        });
+
+        // ============================================
+        // HISTÓRICO
+        // ============================================
+        function normalizarCEP(cep) {
+            const apenasNumeros = cep.replace(/\D/g, '');
+            if (apenasNumeros.length !== 8) {
+                throw new Error('CEP deve conter exatamente 8 dígitos');
+            }
+            return apenasNumeros;
+        }
+
+        function adicionarAoHistorico(cep, endereco) {
+            const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            const item = {
+                cep: formatarCEP(cep),
+                endereco: `${endereco.rua}, ${endereco.bairro}, ${endereco.cidade} - ${endereco.estado}`,
+                data: new Date().toLocaleString('pt-BR'),
+                favorito: false
+            };
+
+            // Remove duplicatas (mantém apenas a mais recente)
+            const filtered = history.filter(h => h.cep !== item.cep);
+            filtered.unshift(item);
+            
+            localStorage.setItem('searchHistory', JSON.stringify(filtered.slice(0, 50)));
+        }
+
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+            
+            totalSearches.textContent = history.length;
+            favoritesCount.textContent = favorites.length;
+
+            historyList.innerHTML = '';
+            historyEmpty.style.display = history.length === 0 ? 'flex' : 'none';
+
+            history.forEach((item, index) => {
+                const isFavorite = favorites.some(f => f.cep === item.cep);
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
+                    <div class="history-item-content" style="cursor: pointer;">
+                        <div class="history-item-cep">${item.cep}</div>
+                        <div class="history-item-address">${item.endereco}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">${item.data}</div>
+                    </div>
+                    <button class="delete-history-btn" style="margin-left: 10px;">${isFavorite ? '⭐' : '☆'}</button>
+                `;
+                
+                div.querySelector('.history-item-content').addEventListener('click', () => {
+                    cepInput.value = item.cep;
+                    tabButtons[0].click();
+                    buscarCEP();
+                });
+
+                div.querySelector('.delete-history-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (isFavorite) {
+                        const newFavorites = favorites.filter(f => f.cep !== item.cep);
+                        localStorage.setItem('favorites', JSON.stringify(newFavorites));
+                    } else {
+                        favorites.push(item);
+                        localStorage.setItem('favorites', JSON.stringify(favorites));
+                    }
+                    renderHistory();
+                });
+
+                historyList.appendChild(div);
+            });
+        }
+
+        // ============================================
+        // INICIALIZAÇÃO
+        // ============================================
         cepInput.focus();
     </script>
 </body>
