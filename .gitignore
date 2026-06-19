@@ -23,3 +23,7 @@ build/
 # Logs
 logs/
 *.log
+
+# Exports
+*.json
+!package.json
