@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultor de CEP - Busca de Endereços</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #4f46e5;
+            --primary-dark: #4338ca;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --background: #f9fafb;
+            --surface: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, #7c3aed 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            margin-top: 20px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .search-section {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .cep-input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .cep-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .cep-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-btn {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+        .search-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(79, 70, 229, 0.4);
+        }
+
+        .search-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: var(--error-color);
+            font-size: 0.95rem;
+            padding: 10px 0;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 30px;
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .loading-spinner.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-spinner p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .result-section {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .result-section.hidden {
+            display: none;
+        }
+
+        .result-card h2 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            font-size: 1.5rem;
+        }
+
+        .address-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .address-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .address-item label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .address-value {
+            font-size: 1.05rem;
+            color: var(--text-primary);
+            padding: 12px;
+            background: var(--background);
+            border-radius: 6px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .copy-btn {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .copy-btn:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .clear-btn {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .clear-btn:hover {
+            background: #d1d5db;
+            transform: translateY(-2px);
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            min-height: 200px;
+        }
+
+        footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 40px;
+            padding-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        #apiSource {
+            font-weight: 600;
+            color: white;
+        }
+
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .search-btn {
+                min-width: 100%;
+            }
+
+            .address-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Consultor de CEP</h1>
+            <p class="subtitle">Busque endereços brasileiros de forma rápida e fácil</p>
+        </header>
+
+        <main>
+            <div class="search-section">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="cepInput" 
+                        class="cep-input" 
+                        placeholder="Digite o CEP (ex: 01001-000 ou 01001000)"
+                        maxlength="9"
+                    >
+                    <button id="searchBtn" class="search-btn">Buscar</button>
+                </div>
+                <div id="errorMessage" class="error-message"></div>
+            </div>
+
+            <div id="loadingSpinner" class="loading-spinner hidden">
+                <div class="spinner"></div>
+                <p>Consultando endereço...</p>
+            </div>
+
+            <div id="resultSection" class="result-section hidden">
+                <div class="result-card">
+                    <h2>📍 Endereço Encontrado</h2>
+                    
+                    <div class="address-grid">
+                        <div class="address-item">
+                            <label>CEP</label>
+                            <p id="resultCep" class="address-value">-</p>
+                        </div>
+                        <div class="address-item">
+                            <label>Logradouro</label>
+                            <p id="resultRua" class="address-value">-</p>
+                        </div>
+                        <div class="address-item">
+                            <label>Número/Complemento</label>
+                            <p id="resultComplemento" class="address-value">-</p>
+                        </div>
+                        <div class="address-item">
+                            <label>Bairro</label>
+                            <p id="resultBairro" class="address-value">-</p>
+                        </div>
+                        <div class="address-item">
+                            <label>Cidade</label>
+                            <p id="resultCidade" class="address-value">-</p>
+                        </div>
+                        <div class="address-item">
+                            <label>Estado (UF)</label>
+                            <p id="resultEstado" class="address-value">-</p>
+                        </div>
+                    </div>
+
+                    <div class="result-actions">
+                        <button id="copyBtn" class="action-btn copy-btn">
+                            📋 Copiar Endereço
+                        </button>
+                        <button id="clearBtn" class="action-btn clear-btn">
+                            🔄 Nova Busca
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="emptyState" class="empty-state">
+                <p>👆 Digite um CEP acima para começar</p>
+            </div>
+        </main>
+
+        <footer>
+            <p>Utilizando múltiplas APIs confiáveis • <span id="apiSource">-</span></p>
+        </footer>
+    </div>
+
+    <script>
+        // APIs de CEP com fallback
+        const APIs = [
+            {
+                name: 'ViaCEP',
+                url: (cep) => `https://viacep.com.br/ws/${cep}/json/`,
+                parser: (data) => ({
+                    cep: data.cep,
+                    rua: data.logradouro,
+                    complemento: data.complemento,
+                    bairro: data.bairro,
+                    cidade: data.localidade,
+                    estado: data.uf,
+                }),
+                isError: (data) => data.erro === true
+            },
+            {
+                name: 'BrasilAPI v2',
+                url: (cep) => `https://brasilapi.com.br/api/cep/v2/${cep}`,
+                parser: (data) => ({
+                    cep: data.cep,
+                    rua: data.street,
+                    complemento: data.complement || '',
+                    bairro: data.neighborhood,
+                    cidade: data.city,
+                    estado: data.state,
+                }),
+                isError: (data) => data.status === 400 || data.message === 'Not found'
+            },
+            {
+                name: 'AwesomeAPI',
+                url: (cep) => `https://cep.awesomeapi.com.br/json/${cep}`,
+                parser: (data) => ({
+                    cep: data.cep,
+                    rua: data.address,
+                    complemento: '',
+                    bairro: data.district,
+                    cidade: data.city,
+                    estado: data.state,
+                }),
+                isError: (data) => data.status === 400
+            }
+        ];
+
+        // Elementos do DOM
+        const cepInput = document.getElementById('cepInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const resultSection = document.getElementById('resultSection');
+        const emptyState = document.getElementById('emptyState');
+        const copyBtn = document.getElementById('copyBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const apiSource = document.getElementById('apiSource');
+
+        // Mascara o CEP enquanto digita
+        cepInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 5) {
+                value = value.slice(0, 5) + '-' + value.slice(5, 8);
+            }
+            e.target.value = value;
+            clearError();
+        });
+
+        // Busca ao clicar ou pressionar Enter
+        searchBtn.addEventListener('click', buscarCEP);
+        cepInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') buscarCEP();
+        });
+
+        // Copia o endereço para clipboard
+        copyBtn.addEventListener('click', () => {
+            const endereco = [
+                document.getElementById('resultRua').textContent,
+                document.getElementById('resultComplemento').textContent,
+                document.getElementById('resultBairro').textContent,
+                document.getElementById('resultCidade').textContent,
+                document.getElementById('resultEstado').textContent,
+                document.getElementById('resultCep').textContent
+            ].filter(item => item !== '-').join(', ');
+
+            navigator.clipboard.writeText(endereco).then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ Copiado!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            });
+        });
+
+        // Limpa a busca
+        clearBtn.addEventListener('click', () => {
+            cepInput.value = '';
+            resultSection.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            cepInput.focus();
+            clearError();
+        });
+
+        // Valida e normaliza CEP
+        function normalizarCEP(cep) {
+            const apenasNumeros = cep.replace(/\D/g, '');
+            if (apenasNumeros.length !== 8) {
+                throw new Error('CEP deve conter exatamente 8 dígitos');
+            }
+            return apenasNumeros;
+        }
+
+        // Exibe erro
+        function mostrarErro(mensagem) {
+            errorMessage.textContent = mensagem;
+            errorMessage.classList.add('show');
+        }
+
+        // Limpa erro
+        function clearError() {
+            errorMessage.textContent = '';
+            errorMessage.classList.remove('show');
+        }
+
+        // Exibe loading
+        function mostrarLoading(show = true) {
+            if (show) {
+                loadingSpinner.classList.remove('hidden');
+                resultSection.classList.add('hidden');
+                emptyState.classList.add('hidden');
+            } else {
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+
+        // Exibe resultado
+        function exibirResultado(dados, nomeAPI) {
+            document.getElementById('resultCep').textContent = formatarCEP(dados.cep);
+            document.getElementById('resultRua').textContent = dados.rua || '-';
+            document.getElementById('resultComplemento').textContent = dados.complemento || '-';
+            document.getElementById('resultBairro').textContent = dados.bairro || '-';
+            document.getElementById('resultCidade').textContent = dados.cidade || '-';
+            document.getElementById('resultEstado').textContent = dados.estado || '-';
+            apiSource.textContent = nomeAPI;
+
+            resultSection.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            mostrarLoading(false);
+        }
+
+        // Formata CEP para exibição
+        function formatarCEP(cep) {
+            cep = cep.replace(/\D/g, '');
+            return cep.slice(0, 5) + '-' + cep.slice(5, 8);
+        }
+
+        // Busca CEP com fallback entre APIs
+        async function buscarCEP() {
+            clearError();
+
+            try {
+                const cep = normalizarCEP(cepInput.value);
+                mostrarLoading(true);
+                searchBtn.disabled = true;
+
+                // Tenta cada API em ordem
+                for (const api of APIs) {
+                    try {
+                        const response = await fetch(api.url(cep), {
+                            timeout: 5000
+                        });
+
+                        if (!response.ok) continue;
+
+                        const data = await response.json();
+
+                        if (api.isError(data)) continue;
+
+                        const endereco = api.parser(data);
+                        exibirResultado(endereco, api.name);
+                        searchBtn.disabled = false;
+                        return;
+
+                    } catch (erro) {
+                        console.warn(`${api.name} falhou:`, erro);
+                        continue;
+                    }
+                }
+
+                // Se nenhuma API funcionou
+                mostrarErro('❌ CEP não encontrado. Tente verificar o número digitado.');
+                mostrarLoading(false);
+                resultSection.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+
+            } catch (erro) {
+                mostrarErro(`⚠️ ${erro.message}`);
+                mostrarLoading(false);
+            } finally {
+                searchBtn.disabled = false;
+            }
+        }
+
+        // Focus no input ao carregar
+        cepInput.focus();
+    </script>
+</body>
+</html>
